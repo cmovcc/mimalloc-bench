@@ -132,6 +132,14 @@
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
+      stdenv-mkDerivationP = args:
+        pkgs.stdenv.mkDerivation (args // {
+          enableParallelBuilding = true;
+        });
+      clangStdenv-mkDerivationP = args:
+        pkgs.clangStdenv.mkDerivation (args // {
+          enableParallelBuilding = true;
+        });
       stdenv = pkgs.stdenv;
       clangStdenv = pkgs.clangStdenv;
       lib = pkgs.lib;
@@ -524,7 +532,6 @@
           str_allocs = lib.concatMapStrings (name: "${name} ") (builtins.attrNames allocs);
         in
         stdenv.mkDerivation {
-          impure = true;
           name = "run";
           src = bench4_ allocs;
           nativeBuildInputs = with pkgs; [
@@ -564,7 +571,7 @@
             # tests4: ok (except spec-bench)
             popd
           '';
-          installPhase = "cp out/bench/benchres.csv $out";
+          installPhase = "cp out/bench/benchres.csv $out && false";
           #installPhase = "mkdir $out && cp -r * $out";
       };
       allocs = {
@@ -603,6 +610,7 @@
       run = run_ allocs;
     in
     {
+      lib = { inherit run_ bench4_ allocs; };
       packages.${system} = {
         inherit
           ## allocators
