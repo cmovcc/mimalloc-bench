@@ -488,7 +488,7 @@
         in
         stdenv.mkDerivation {
           name = "bench3";
-          nativeBuildInputs = [ pkgs.rsync ] ++ (builtins.map (obj: obj.drv) objs);
+          nativeBuildInputs = [ pkgs.util-linux pkgs.rsync ] ++ (builtins.map (obj: obj.drv) objs);
           src = bench2;
           buildPhase = build_phase;
           installPhase = "mkdir $out && cp -r * $out";
@@ -509,7 +509,7 @@
         stdenv.mkDerivation {
           src = bench3_ benches;
           name = "bench4";
-          nativeBuildInputs = builtins.map (obj: obj.drv) objs;
+          nativeBuildInputs = [ pkgs.util-linux ] ++ (builtins.map (obj: obj.drv) objs);
           configurePhase = conf_phase;
           buildPhase = build_phase;
           installPhase = "mkdir $out && cp -r * $out";
