@@ -593,11 +593,12 @@
             popd
           '';
         };
-        rocksdb = { drv = rocksdb; cmd2 = "";
-          cmd1 = ''
-            cp -r ${rocksdb} extern/rocksdb-${version_rocksdb}
-          '';
-        };
+        #TODO: disable rocksdb for now, issue with CI
+        #rocksdb = { drv = rocksdb; cmd2 = "";
+        #  cmd1 = ''
+        #    cp -r ${rocksdb} extern/rocksdb-${version_rocksdb}
+        #  '';
+        #};
       };
       allocs = {
         ##dh = { drv = dh; fix = ""; };
