@@ -406,7 +406,7 @@
       };
       rocksdb = stdenv.mkDerivation {
         name = "rocksdb";
-        nativeBuildInputs = with pkgs; [ util-linux which gflags perl snappy ];
+        nativeBuildInputs = with pkgs; [ bash util-linux which gflags perl snappy ];
         src = src_rocksdb;
         makeFlags = [
           "DISABLE_WARNING_AS_ERROR=1"
@@ -479,26 +479,19 @@
 
       # Stage 3: build other benches (redis, lean3, rocksdb)
       # and add it to previous stage
-      bench3 = stdenv.mkDerivation {
-        name = "bench3";
-        nativeBuildInputs = [
-          pkgs.rsync
-          # previous stages
-          redis
-          lean3
-          rocksdb
-        ];
-        dontUseCmakeConfigure = true;
-        src = bench2;
-        buildPhase = ''
-          cp -r ${redis} extern/redis-${version_redis}
-          # exclude out/release to avoid cmake issues during benchmark
-          rsync -av ${lean3}/ extern/lean --exclude=out/release/*
-          mkdir extern/mathlib
-          cp -u extern/lean/leanpkg/leanpkg.toml extern/mathlib
-          cp -r ${rocksdb} extern/rocksdb-${version_rocksdb}
-        '';
-        installPhase = "mkdir $out && cp -r * $out";
+      bench3_ = benches:
+        let
+          objs = builtins.map (name: builtins.getAttr name benches) (builtins.attrNames benches);
+          build_phase = lib.strings.concatMapStrings (obj:
+            "${obj.cmd1}"
+          ) objs;
+        in
+        stdenv.mkDerivation {
+          name = "bench3";
+          nativeBuildInputs = [ pkgs.rsync ] ++ (builtins.map (obj: obj.drv) objs);
+          src = bench2;
+          buildPhase = build_phase;
+          installPhase = "mkdir $out && cp -r * $out";
       };
 
       # Stage 4: build selected allocators
@@ -514,7 +507,7 @@
           ) objs;
         in
         stdenv.mkDerivation {
-          src = bench3;
+          src = bench3_ benches;
           name = "bench4";
           nativeBuildInputs = builtins.map (obj: obj.drv) objs;
           configurePhase = conf_phase;
@@ -524,12 +517,14 @@
           #allocs = allocs;
           #lib = pkgs.lib;
           #installPhase = "touch $out";
-        };
+      };
 
       # Bench selected allocators
       run_ = allocs:
         let
-          str_allocs = lib.concatMapStrings (name: "${name} ") (builtins.attrNames allocs);
+          str_allocs = lib.concatMapStrings
+            (name: "${builtins.getAttr name allocs} ")
+            (builtins.attrNames allocs);
         in
         stdenv.mkDerivation {
           name = "run";
@@ -546,10 +541,10 @@
           dontUseCmakeConfigure = true;
           buildPhase = ''
             # workaround around cmake issue
-            #mkdir -p extern/lean/out/release
-            #pushd extern/lean/out/release
-            #cmake ../../src -DCUSTOM_ALLOCATORS=OFF -DLEAN_EXTRA_CXX_FLAGS="-w"
-            #popd
+            mkdir -p extern/lean/out/release
+            pushd extern/lean/out/release
+            cmake ../../src -DCUSTOM_ALLOCATORS=OFF -DLEAN_EXTRA_CXX_FLAGS="-w"
+            popd
             ## prepare benchmarks
             touch extern/versions.txt
             # allt is an alias for tests_all{1,2,3,4} instead of tests_all{1,2}
@@ -563,7 +558,8 @@
             mv build out/bench
             pushd out/bench
             # benchmark
-            bash ../../bench.sh sys ${str_allocs} espresso
+            #bash ../../bench.sh sys $str_allocs espresso
+            bash ../../bench.sh sys rocksdb lean lean-mathlib redis espresso
             # current state: everything is compiling and running with sys (glibc)
             # tests1: ok
             # tests2: ok
@@ -574,38 +570,68 @@
           installPhase = "cp out/bench/benchres.csv $out && false";
           #installPhase = "mkdir $out && cp -r * $out";
       };
-      allocs = {
-        #dh = { drv = dh; fix = ""; };
-        ff = { drv = ff; fix = ""; };
-        fg = { drv = fg; fix = ""; };
-        gd = { drv = gd; fix = ""; };
-        #hd = { drv = hd; fix = ""; };
-        hm = { drv = hm; fix = ""; };
-        hml = { drv = hml;
-          fix = "sed -i 's/hm\\/out-light\\/libhardened_malloc-light/hml\\/out-light\\/libhardened_malloc-light/' bench.sh\n";
+
+      benches = {
+        redis = { drv = redis; cmd2 = "";
+          cmd1 = ''
+            cp -r ${redis} extern/redis-${version_redis}
+          '';
         };
-        iso = { drv = iso; fix = ""; };
-        je = { drv = je; fix = ""; };
-        lf = { drv = lf; fix = ""; };
-        #lp = { drv = lp; fix = ""; };
-        lt = { drv = lt; fix = ""; };
-        #mesh nomesh
-        mi = { drv = mi; fix = ""; };
-        mi-sec = { drv = mi-sec;
-          fix = "sed -i 's/mi\\/out\\/secure\\/libmimalloc-secure/mi-sec\\/out\\/secure\\/libmimalloc-secure/' bench.sh\n";
+        lean3 = { drv = lean3;
+          # exclude out/release to avoid cmake issues during benchmark
+          # as cmake cache does not support to be moved
+          cmd1 = ''
+            rsync -av ${lean3}/ extern/lean --exclude=out/release/*
+            mkdir extern/mathlib
+            cp -u extern/lean/leanpkg/leanpkg.toml extern/mathlib
+          '';
+          # workaround around cmake issue
+          cmd2 = ''
+            mkdir -p extern/lean/out/release
+            pushd extern/lean/out/release
+            cmake ../../src -DCUSTOM_ALLOCATORS=OFF -DLEAN_EXTRA_CXX_FLAGS="-w"
+            popd
+          '';
         };
-        mng = { drv = mng; fix = ""; };
-        #pa
-        rp = { drv = rp; fix = ""; };
-        sc = { drv = sc; fix = ""; };
-        #scudo
-        sg = { drv = sg; fix = ""; };
-        sm = { drv = sm; fix = ""; };
-        #sn
-        tbb = { drv = tbb; fix = ""; };
-        tc = { drv = tc; fix = ""; };
-        #tcg
+        rocksdb = { drv = rocksdb; cmd2 = "";
+          cmd1 = ''
+            cp -r ${rocksdb} extern/rocksdb-${version_rocksdb}
+          '';
+        };
       };
+      allocs = {
+        ##dh = { drv = dh; fix = ""; };
+        #ff = { drv = ff; fix = ""; };
+        #fg = { drv = fg; fix = ""; };
+        #gd = { drv = gd; fix = ""; };
+        ##hd = { drv = hd; fix = ""; };
+        #hm = { drv = hm; fix = ""; };
+        #hml = { drv = hml;
+        #  fix = "sed -i 's/hm\\/out-light\\/libhardened_malloc-light/hml\\/out-light\\/libhardened_malloc-light/' bench.sh\n";
+        #};
+        #iso = { drv = iso; fix = ""; };
+        #je = { drv = je; fix = ""; };
+        #lf = { drv = lf; fix = ""; };
+        ##lp = { drv = lp; fix = ""; };
+        #lt = { drv = lt; fix = ""; };
+        ##mesh nomesh
+        #mi = { drv = mi; fix = ""; };
+        #mi-sec = { drv = mi-sec;
+        #  fix = "sed -i 's/mi\\/out\\/secure\\/libmimalloc-secure/mi-sec\\/out\\/secure\\/libmimalloc-secure/' bench.sh\n";
+        #};
+        #mng = { drv = mng; fix = ""; };
+        ##pa
+        #rp = { drv = rp; fix = ""; };
+        #sc = { drv = sc; fix = ""; };
+        ##scudo
+        #sg = { drv = sg; fix = ""; };
+        #sm = { drv = sm; fix = ""; };
+        ##sn
+        #tbb = { drv = tbb; fix = ""; };
+        #tc = { drv = tc; fix = ""; };
+        ##tcg
+      };
+      bench3 = bench3_ benches;
       bench4 = bench4_ allocs;
       run = run_ allocs;
     in
