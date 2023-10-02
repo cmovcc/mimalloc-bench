@@ -496,7 +496,7 @@
 
       # Stage 4: build selected allocators
       # and add it to previous stage
-      bench4_ = allocs:
+      bench4_ = benches: allocs:
         let
           objs = builtins.map (name: builtins.getAttr name allocs) (builtins.attrNames allocs);
           conf_phase = lib.strings.concatMapStrings (obj:
@@ -520,7 +520,7 @@
       };
 
       # Bench selected allocators
-      run_ = allocs:
+      run_ = benches: allocs:
         let
           str_allocs = lib.concatMapStrings
             (name: "${builtins.getAttr name allocs} ")
@@ -528,7 +528,7 @@
         in
         stdenv.mkDerivation {
           name = "run";
-          src = bench4_ allocs;
+          src = bench4_ benches allocs;
           nativeBuildInputs = with pkgs; [
             util-linux bash time
             readline #lua
@@ -633,8 +633,8 @@
         ##tcg
       };
       bench3 = bench3_ benches;
-      bench4 = bench4_ allocs;
-      run = run_ allocs;
+      bench4 = bench4_ benches allocs;
+      run = run_ benches allocs;
     in
     {
       lib = { inherit run_ bench4_ allocs; };
