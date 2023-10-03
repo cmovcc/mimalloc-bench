@@ -645,7 +645,7 @@
       run = run_ benches allocs;
     in
     {
-      lib = { inherit run_ bench4_ allocs; };
+      lib.${system} = { inherit run_ bench4_ allocs; };
       packages.${system} = {
         inherit
           ## allocators
