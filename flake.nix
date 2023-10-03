@@ -470,11 +470,10 @@
         name = "bench2";
         nativeBuildInputs = with pkgs; [ dos2unix patch cmake ];
         src = bench1;
-        cmakeFlags = [ "-DCMAKE_INSTALL_LIBDIR=out/bench" ];
         cmakeDir = "../bench";
         #TODO: this should not be required
         enableParallelBuilding = true;
-        installPhase = "cd .. && mkdir $out && cp -r * $out";
+        installPhase = "cd .. && mkdir out && mv build out/bench &&  mkdir $out && cp -r * $out";
       };
 
       # Stage 3: build other benches (redis, lean3, rocksdb)
@@ -523,14 +522,18 @@
       };
 
       # Bench selected allocators
-      run_ = benches: allocs:
+      run_ = benches: allocs: cmd:
         let
           str_allocs = lib.concatMapStrings
             (name: "${builtins.getAttr name allocs} ")
             (builtins.attrNames allocs);
-          str_benches = lib.concatMapStrings
-            (name: "${(builtins.getAttr name allocs).benches} ")
-            (builtins.attrNames benches);
+          str_benches =
+            if (cmd == "")
+            then
+              lib.concatMapStrings
+                (name: "${(builtins.getAttr name benches).benches} ")
+                (builtins.attrNames benches)
+            else cmd;
           objs_benches = builtins.map (name: builtins.getAttr name benches) (builtins.attrNames benches);
           build_phase = lib.strings.concatMapStrings (obj:
             "${obj.cmd2}"
@@ -549,18 +552,18 @@
             cmake gmp #lean
           ];
           dontUseCmakeConfigure = true;
-          buildPhase = build_phase + ''
+          buildPhase = ''
+            ${build_phase}
             ## prepare benchmarks
             touch extern/versions.txt
             # allt is an alias for tests_all{1,2,3,4} instead of tests_all{1,2}
             sed -i 's/tests_allt="$tests_all1 $tests_all2"/tests_allt="$tests_all1 $tests_all2 $tests_all3 $tests_all4"/' bench.sh
             # lean and lean-mathlib should not be excluded
             sed -i 's/tests_exclude="$tests_exclude lean lean-mathlib"/tests_exclude="$tests_exclude"/' bench.sh
-            mkdir -p out/bench
             pushd out/bench
             # benchmark
-            #bash ../../bench.sh sys $str_allocs espresso
-            bash ../../bench.sh sys rocksdb lean lean-mathlib redis espresso
+            bash ../../bench.sh sys ${str_allocs} ${str_benches}
+            #bash ../../bench.sh sys rocksdb lean lean-mathlib redis espresso
             # current state: everything is compiling and running with sys (glibc)
             # tests1: ok
             # tests2: ok
@@ -577,7 +580,7 @@
       # benches = names of corresponding benches,
       # cmd1 = installation of bench (stage3)
       # cmd2 = preparation of bench (run)
-      benches = {
+      benches_ = {
         redis = { drv = redis; benches = "redis"; cmd2 = "";
           cmd1 = ''
             cp -r ${redis} extern/redis-${version_redis}
@@ -608,7 +611,7 @@
 
       # drv = derivation
       # fix = fixup installation of alloc (stage4)
-      allocs = {
+      allocs_ = {
         ##dh = { drv = dh; fix = ""; };
         #ff = { drv = ff; fix = ""; };
         #fg = { drv = fg; fix = ""; };
@@ -640,12 +643,12 @@
         #tc = { drv = tc; fix = ""; };
         ##tcg
       };
-      bench3 = bench3_ benches;
-      bench4 = bench4_ benches allocs;
-      run = run_ benches allocs;
+      bench3 = bench3_ benches_;
+      bench4 = bench4_ benches_ allocs_;
+      run = run_ benches_ allocs_ "espresso rbstress lean";
     in
     {
-      lib.${system} = { inherit run_ bench4_ allocs; };
+      lib.${system} = { inherit run_ bench4_ allocs_ benches_; };
       packages.${system} = {
         inherit
           ## allocators
