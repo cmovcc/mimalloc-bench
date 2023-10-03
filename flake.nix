@@ -481,14 +481,17 @@
       # and add it to previous stage
       bench3_ = benches:
         let
-          objs = builtins.map (name: builtins.getAttr name benches) (builtins.attrNames benches);
+          objs_benches = builtins.map (name: builtins.getAttr name benches) (builtins.attrNames benches);
           build_phase = lib.strings.concatMapStrings (obj:
             "${obj.cmd1}"
-          ) objs;
+          ) objs_benches;
         in
         stdenv.mkDerivation {
           name = "bench3";
-          nativeBuildInputs = [ pkgs.util-linux pkgs.rsync ] ++ (builtins.map (obj: obj.drv) objs);
+          nativeBuildInputs =
+            with pkgs; [ util-linux rsync ]
+            ++
+            (builtins.map (obj: obj.drv) objs_benches);
           src = bench2;
           buildPhase = build_phase;
           installPhase = "mkdir $out && cp -r * $out";
@@ -498,18 +501,18 @@
       # and add it to previous stage
       bench4_ = benches: allocs:
         let
-          objs = builtins.map (name: builtins.getAttr name allocs) (builtins.attrNames allocs);
+          objs_allocs = builtins.map (name: builtins.getAttr name allocs) (builtins.attrNames allocs);
           conf_phase = lib.strings.concatMapStrings (obj:
             "cp -r ${obj.drv} extern/${obj.drv.name}\n"
-          ) objs;
+          ) objs_allocs;
           build_phase = lib.strings.concatMapStrings (obj:
             "${obj.fix}"
-          ) objs;
+          ) objs_allocs;
         in
         stdenv.mkDerivation {
           src = bench3_ benches;
           name = "bench4";
-          nativeBuildInputs = [ pkgs.util-linux ] ++ (builtins.map (obj: obj.drv) objs);
+          nativeBuildInputs = [ pkgs.util-linux ] ++ (builtins.map (obj: obj.drv) objs_allocs);
           configurePhase = conf_phase;
           buildPhase = build_phase;
           installPhase = "mkdir $out && cp -r * $out";
@@ -525,6 +528,13 @@
           str_allocs = lib.concatMapStrings
             (name: "${builtins.getAttr name allocs} ")
             (builtins.attrNames allocs);
+          str_benches = lib.concatMapStrings
+            (name: "${(builtins.getAttr name allocs).benches} ")
+            (builtins.attrNames benches);
+          objs_benches = builtins.map (name: builtins.getAttr name benches) (builtins.attrNames benches);
+          build_phase = lib.strings.concatMapStrings (obj:
+            "${obj.cmd2}"
+          ) objs_benches;
         in
         stdenv.mkDerivation {
           name = "run";
@@ -539,23 +549,14 @@
             cmake gmp #lean
           ];
           dontUseCmakeConfigure = true;
-          buildPhase = ''
-            # workaround around cmake issue
-            mkdir -p extern/lean/out/release
-            pushd extern/lean/out/release
-            cmake ../../src -DCUSTOM_ALLOCATORS=OFF -DLEAN_EXTRA_CXX_FLAGS="-w"
-            popd
+          buildPhase = build_phase + ''
             ## prepare benchmarks
             touch extern/versions.txt
             # allt is an alias for tests_all{1,2,3,4} instead of tests_all{1,2}
             sed -i 's/tests_allt="$tests_all1 $tests_all2"/tests_allt="$tests_all1 $tests_all2 $tests_all3 $tests_all4"/' bench.sh
             # lean and lean-mathlib should not be excluded
             sed -i 's/tests_exclude="$tests_exclude lean lean-mathlib"/tests_exclude="$tests_exclude"/' bench.sh
-            # TODO: upstream bug, lf is not used
-            sed -i 's/alloc_all="sys/alloc_all="lf sys/' bench.sh
-            # fix mi-sec installation path
-            mkdir out
-            mv build out/bench
+            mkdir -p out/bench
             pushd out/bench
             # benchmark
             #bash ../../bench.sh sys $str_allocs espresso
@@ -571,13 +572,18 @@
           #installPhase = "mkdir $out && cp -r * $out";
       };
 
+
+      # drv = derivation,
+      # benches = names of corresponding benches,
+      # cmd1 = installation of bench (stage3)
+      # cmd2 = preparation of bench (run)
       benches = {
-        redis = { drv = redis; cmd2 = "";
+        redis = { drv = redis; benches = "redis"; cmd2 = "";
           cmd1 = ''
             cp -r ${redis} extern/redis-${version_redis}
           '';
         };
-        lean3 = { drv = lean3;
+        lean3 = { drv = lean3; benches = "lean lean-mathlib";
           # exclude out/release to avoid cmake issues during benchmark
           # as cmake cache does not support to be moved
           cmd1 = ''
@@ -593,13 +599,15 @@
             popd
           '';
         };
-        #TODO: disable rocksdb for now, issue with CI
-        #rocksdb = { drv = rocksdb; cmd2 = "";
-        #  cmd1 = ''
-        #    cp -r ${rocksdb} extern/rocksdb-${version_rocksdb}
-        #  '';
-        #};
+        rocksdb = { drv = rocksdb; benches = "rocksdb"; cmd2 = "";
+          cmd1 = ''
+            cp -r ${rocksdb} extern/rocksdb-${version_rocksdb}
+          '';
+        };
       };
+
+      # drv = derivation
+      # fix = fixup installation of alloc (stage4)
       allocs = {
         ##dh = { drv = dh; fix = ""; };
         #ff = { drv = ff; fix = ""; };
