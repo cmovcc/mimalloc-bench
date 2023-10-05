@@ -29,7 +29,6 @@
         "src_lf": "src_lf",
         "src_lt": "src_lt",
         "src_mi": "src_mi",
-        "src_mimalloc-bench": "src_mimalloc-bench",
         "src_mng": "src_mng",
         "src_rp": "src_rp",
         "src_sc": "src_sc",
@@ -197,22 +196,6 @@
       "original": {
         "owner": "Microsoft",
         "repo": "mimalloc",
-        "type": "github"
-      }
-    },
-    "src_mimalloc-bench": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1696016615,
-        "narHash": "sha256-gLWXkDPNIr6u78FAmRsqWDBOJ5BxkD1+DV8GbUOws58=",
-        "owner": "daanx",
-        "repo": "mimalloc-bench",
-        "rev": "5fa1f2ff080343dd87dc0b192c69712dbafe2e36",
-        "type": "github"
-      },
-      "original": {
-        "owner": "daanx",
-        "repo": "mimalloc-bench",
         "type": "github"
       }
     },

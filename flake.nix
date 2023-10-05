@@ -30,10 +30,10 @@
   
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    src_mimalloc-bench = {
-      url = "github:daanx/mimalloc-bench/";
-      flake = false;
-    };
+    #src_mimalloc-bench = {
+    #  url = "github:daanx/mimalloc-bench/";
+    #  flake = false;
+    #};
     # lean benchmark
     src_lean3 = {
       url = "github:leanprover-community/lean";
@@ -419,7 +419,7 @@
           "DISABLE_JEMALLOC=1"
         ];
         #TODO: this should not be required
-        enableParallelBuilding = false;
+        enableParallelBuilding = true;
         buildFlags = [ "db_bench" ];
         installPhase = "mkdir $out && cp -r * $out";
       };
@@ -446,7 +446,14 @@
       bench1 = stdenv.mkDerivation {
         name = "bench1";
         nativeBuildInputs = with pkgs; [ dos2unix patch ];
-        src = inputs.src_mimalloc-bench;
+        #src = inputs.src_mimalloc-bench;
+        src = lib.sourceByRegex ./. [
+          "bench(/.*)?"
+          "doc(/.*)?"
+          "bench.sh"
+          "build-bench-env.sh"
+        ];
+
         buildPhase = ''
           # sh6bench + sh8bench
           pushd bench/shbench
@@ -558,6 +565,9 @@
             cmake gmp #lean
           ];
           dontUseCmakeConfigure = true;
+          postPatch = ''
+            substituteInPlace bench.sh --replace "/usr/bin/env" "${pkgs.coreutils}/bin/env"
+          '';
           buildPhase = ''
             ${build_phase}
             ## prepare benchmarks
@@ -566,10 +576,12 @@
             sed -i 's/tests_allt="$tests_all1 $tests_all2"/tests_allt="$tests_all1 $tests_all2 $tests_all3 $tests_all4"/' bench.sh
             # lean and lean-mathlib should not be excluded
             sed -i 's/tests_exclude="$tests_exclude lean lean-mathlib"/tests_exclude="$tests_exclude"/' bench.sh
+            #sed -i 's/\/usr\/bin\/env//' bench.sh
+            cat bench.sh | grep timecmd
             pushd out/bench
             # benchmark
             bash ../../bench.sh sys ${str_allocs} ${str_benches}
-            #bash ../../bench.sh sys rocksdb lean lean-mathlib redis espresso
+            #bash ../../bench.sh sys espresso
             # current state: everything is compiling and running with sys (glibc)
             # tests1: ok
             # tests2: ok
