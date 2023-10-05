@@ -418,7 +418,7 @@
           "DISABLE_JEMALLOC=1"
         ];
         #TODO: this should not be required
-        enableParallelBuilding = true;
+        enableParallelBuilding = false;
         buildFlags = [ "db_bench" ];
         installPhase = "mkdir $out && cp -r * $out";
       };
