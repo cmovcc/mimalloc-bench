@@ -400,9 +400,14 @@
         installPhase = "cd .. && mkdir $out && cp -r * $out";
       };
       version_rocksdb = "8.1.1";
-      src_rocksdb = builtins.fetchTarball {
-        url = "https://github.com/facebook/rocksdb/archive/refs/tags/v${version_rocksdb}.zip";
-        sha256 = "sha256:03jpmhyrz8j0y7jwj8hws9rhhak5k1mhliilrb5n4jahrssm3n7g";
+      src_rocksdb = pkgs.fetchFromGitHub {
+        owner = "facebook";
+        repo = "rocksdb";
+        rev = "v8.1.1";
+        sha256 = "sha256-79hRtc5QSWLLyjRGCmuYZSoIc9IcIsnl8UCinz2sVw4=";
+        #hash = "";
+        #url = "https:/github.com/facebook/rocksdb/archive/refs/tags/v${version_rocksdb}.zip";
+        #sha256 = "sha256:03jpmhyrz8j0y7jwj8hws9rhhak5k1mhliilrb5n4jahrssm3n7g";
       };
       rocksdb = stdenv.mkDerivation {
         name = "rocksdb";
