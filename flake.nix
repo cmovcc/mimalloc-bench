@@ -576,8 +576,6 @@
             sed -i 's/tests_allt="$tests_all1 $tests_all2"/tests_allt="$tests_all1 $tests_all2 $tests_all3 $tests_all4"/' bench.sh
             # lean and lean-mathlib should not be excluded
             sed -i 's/tests_exclude="$tests_exclude lean lean-mathlib"/tests_exclude="$tests_exclude"/' bench.sh
-            #sed -i 's/\/usr\/bin\/env//' bench.sh
-            cat bench.sh | grep timecmd
             pushd out/bench
             # benchmark
             bash ../../bench.sh sys ${str_allocs} ${str_benches}
@@ -663,7 +661,7 @@
       };
       bench3 = bench3_ benches_;
       bench4 = bench4_ benches_ allocs_;
-      run = run_ benches_ allocs_ "espresso rbstress lean";
+      run = run_ benches_ allocs_ "allt";
     in
     {
       lib.${system} = { inherit run_ bench4_ allocs_ benches_; };
