@@ -608,11 +608,11 @@
             popd
           '';
         };
-        #rocksdb = { drv = rocksdb; benches = "rocksdb"; cmd2 = "";
-        #  cmd1 = ''
-        #    cp -r ${rocksdb} extern/rocksdb-${version_rocksdb}
-        #  '';
-        #};
+        rocksdb = { drv = rocksdb; benches = "rocksdb"; cmd2 = "";
+          cmd1 = ''
+            cp -r ${rocksdb} extern/rocksdb-${version_rocksdb}
+          '';
+        };
       };
 
       # drv = derivation
