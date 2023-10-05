@@ -413,6 +413,7 @@
         name = "rocksdb";
         nativeBuildInputs = with pkgs; [ bash util-linux which gflags perl snappy ];
         src = src_rocksdb;
+        postPatch = "patchShebangs build_tools/*";
         makeFlags = [
           "DISABLE_WARNING_AS_ERROR=1"
           "DISABLE_JEMALLOC=1"
