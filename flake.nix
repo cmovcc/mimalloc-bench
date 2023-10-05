@@ -538,7 +538,7 @@
       run_ = benches: allocs: cmd:
         let
           str_allocs = lib.concatMapStrings
-            (name: "${builtins.getAttr name allocs} ")
+            (name: "${name} ")
             (builtins.attrNames allocs);
           str_benches =
             if (cmd == "")
@@ -634,9 +634,9 @@
         #gd = { drv = gd; fix = ""; };
         ##hd = { drv = hd; fix = ""; };
         hm = { drv = hm; fix = ""; };
-        hml = { drv = hml;
-          fix = "sed -i 's/hm\\/out-light\\/libhardened_malloc-light/hml\\/out-light\\/libhardened_malloc-light/' bench.sh\n";
-        };
+        #hml = { drv = hml;
+        #  fix = "sed -i 's/hm\\/out-light\\/libhardened_malloc-light/hml\\/out-light\\/libhardened_malloc-light/' bench.sh\n";
+        #};
         #iso = { drv = iso; fix = ""; };
         #je = { drv = je; fix = ""; };
         #lf = { drv = lf; fix = ""; };
@@ -644,9 +644,9 @@
         #lt = { drv = lt; fix = ""; };
         ##mesh nomesh
         mi = { drv = mi; fix = ""; };
-        mi-sec = { drv = mi-sec;
-          fix = "sed -i 's/mi\\/out\\/secure\\/libmimalloc-secure/mi-sec\\/out\\/secure\\/libmimalloc-secure/' bench.sh\n";
-        };
+        #mi-sec = { drv = mi-sec;
+        #  fix = "sed -i 's/mi\\/out\\/secure\\/libmimalloc-secure/mi-sec\\/out\\/secure\\/libmimalloc-secure/' bench.sh\n";
+        #};
         #mng = { drv = mng; fix = ""; };
         ##pa
         #rp = { drv = rp; fix = ""; };
