@@ -27,7 +27,7 @@
   # - warning: supermalloc
   # - reproduciblity: tbbmalloc
   # - snmalloc?
-  
+
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     #src_mimalloc-bench = {
@@ -364,7 +364,7 @@
         #buildPhase = "bazel build -c opt tcmalloc";
         #installPhase = "ls && mkdir -p $out/bazel-bin/tcmalloc && cp bazel-bin/tcmalloc/libtcmalloc.so $out/bazel-bin/tcmalloc";
       };
- 
+
       # redis
       version_redis = "6.2.7";
       src_redis = builtins.fetchTarball {
@@ -441,7 +441,7 @@
         url = "https://github.com/lua/lua/archive/refs/tags/v${version_lua}.zip";
         sha256 = "sha256:0fd4dam1ryxrfybfsb3jd8f3yp7clijapsimddy2i1w1fkk532gz";
       };
- 
+
       # Stage 1: fetch mimalloc-bench repo + basic benches external resources
       bench1 = stdenv.mkDerivation {
         name = "bench1";
@@ -633,20 +633,20 @@
         #fg = { drv = fg; fix = ""; };
         #gd = { drv = gd; fix = ""; };
         ##hd = { drv = hd; fix = ""; };
-        #hm = { drv = hm; fix = ""; };
-        #hml = { drv = hml;
-        #  fix = "sed -i 's/hm\\/out-light\\/libhardened_malloc-light/hml\\/out-light\\/libhardened_malloc-light/' bench.sh\n";
-        #};
+        hm = { drv = hm; fix = ""; };
+        hml = { drv = hml;
+          fix = "sed -i 's/hm\\/out-light\\/libhardened_malloc-light/hml\\/out-light\\/libhardened_malloc-light/' bench.sh\n";
+        };
         #iso = { drv = iso; fix = ""; };
         #je = { drv = je; fix = ""; };
         #lf = { drv = lf; fix = ""; };
         ##lp = { drv = lp; fix = ""; };
         #lt = { drv = lt; fix = ""; };
         ##mesh nomesh
-        #mi = { drv = mi; fix = ""; };
-        #mi-sec = { drv = mi-sec;
-        #  fix = "sed -i 's/mi\\/out\\/secure\\/libmimalloc-secure/mi-sec\\/out\\/secure\\/libmimalloc-secure/' bench.sh\n";
-        #};
+        mi = { drv = mi; fix = ""; };
+        mi-sec = { drv = mi-sec;
+          fix = "sed -i 's/mi\\/out\\/secure\\/libmimalloc-secure/mi-sec\\/out\\/secure\\/libmimalloc-secure/' bench.sh\n";
+        };
         #mng = { drv = mng; fix = ""; };
         ##pa
         #rp = { drv = rp; fix = ""; };
@@ -692,7 +692,7 @@
           tbb
           tc
           tcg
-          
+
           ## specific benches
           lean3
           redis
